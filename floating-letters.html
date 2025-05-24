@@ -84,6 +84,7 @@
         align-items: center;
         z-index: 1000;
         backdrop-filter: blur(10px); /* 背景をぼかす */
+        /* cursor: pointer; // クリック可能であることを示す。メッセージがあるのでここでは不要 */
       }
 
       /* ゲームオーバータイトルのスタイル */
@@ -97,10 +98,18 @@
       /* 最終統計のスタイル */
       #finalStats {
         font-size: 1.4rem;
-        margin-bottom: 3rem;
+        margin-bottom: 2rem; /* メッセージとの間にスペースを設ける */
         text-align: center;
         color: #ccc;
         line-height: 1.8;
+      }
+
+      /* リスタートメッセージのスタイル */
+      #restartMessage {
+        font-size: 1.2rem;
+        color: #64ffda;
+        text-shadow: 0 0 10px #64ffda;
+        animation: pulse 1.5s infinite; /* 点滅アニメーション */
       }
 
       /* スタート画面のスタイル */
@@ -162,7 +171,7 @@
         box-shadow: 0 10px 30px rgba(100, 255, 218, 0.3); /* 影 */
       }
 
-      /* タイトルの点滅アニメーション */
+      /* タイトル/メッセージの点滅アニメーション */
       @keyframes pulse {
         0%,
         100% {
@@ -233,7 +242,7 @@
         <p>打ち抜いた文字数: <span id="finalScore">0</span></p>
         <p>レベル: <span id="finalLevel">1</span></p>
       </div>
-      <button id="restartButton" class="startButton">RESTART</button>
+      <div id="restartMessage">クリックまたはEnterでリスタート</div>
     </div>
 
     <script>
@@ -245,7 +254,7 @@
           this.gameOverScreen = document.getElementById("gameOverScreen");
           this.finalScoreElement = document.getElementById("finalScore");
           this.finalLevelElement = document.getElementById("finalLevel");
-          this.restartButton = document.getElementById("restartButton");
+          this.restartMessage = document.getElementById("restartMessage"); // 追加
           this.startScreen = document.getElementById("startScreen");
           this.startButton = document.getElementById("startButton");
 
@@ -275,7 +284,9 @@
 
         init() {
           this.startButton.addEventListener("click", () => this.startGame());
-          this.restartButton.addEventListener("click", () => this.restart());
+          // ゲームオーバー画面クリックでリスタート
+          this.gameOverScreen.addEventListener("click", () => this.restart());
+          // ドキュメント全体でキーダウンイベントをリッスン (Enterキー用)
           document.addEventListener("keydown", (e) => this.handleKeyPress(e));
           this.updateUI(); // UIを初期化
         }
@@ -365,7 +376,6 @@
           // データ保存
           letterEl.dataset.char = char;
           letterEl.dataset.speedMultiplier = colorData.speed; // colorDataのspeedを乗数として保存
-          // letterEl.dataset.points は不要になったので削除
 
           this.gameArea.appendChild(letterEl);
           this.letters.push({
@@ -394,7 +404,17 @@
         }
 
         handleKeyPress(e) {
-          if (!this.gameRunning) return;
+          // ゲームオーバー画面が表示されている時にEnterキーが押されたらリスタート
+          if (
+            !this.gameRunning &&
+            e.key === "Enter" &&
+            this.gameOverScreen.style.display === "flex"
+          ) {
+            this.restart();
+            return; // リスタート処理が終わったら、以降のキー処理はスキップ
+          }
+
+          if (!this.gameRunning) return; // ゲームが実行中でなければ、ここで処理を終了
 
           const key = e.key.toUpperCase();
 
