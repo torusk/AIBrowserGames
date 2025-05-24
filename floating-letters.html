@@ -239,22 +239,23 @@
     <script>
       class TypingGame {
         constructor() {
-          this.gameArea = document.getElementById("gameContainer"); // ゲームエリアはgameContainerを使用
+          this.gameArea = document.getElementById("gameContainer");
           this.scoreElement = document.getElementById("score");
           this.levelElement = document.getElementById("level");
-          this.gameOverScreen = document.getElementById("gameOverScreen"); // geminitypeの要素を使用
+          this.gameOverScreen = document.getElementById("gameOverScreen");
           this.finalScoreElement = document.getElementById("finalScore");
-          this.finalLevelElement = document.getElementById("finalLevel"); // 追加
-          this.restartButton = document.getElementById("restartButton"); // geminitypeの要素を使用
-          this.startScreen = document.getElementById("startScreen"); // geminitypeの要素を使用
-          this.startButton = document.getElementById("startButton"); // geminitypeの要素を使用
+          this.finalLevelElement = document.getElementById("finalLevel");
+          this.restartButton = document.getElementById("restartButton");
+          this.startScreen = document.getElementById("startScreen");
+          this.startButton = document.getElementById("startButton");
 
           this.score = 0;
-          this.level = 1;
+          this.level = 1; // 表示上の初期レベルは1
           this.gameRunning = false;
           this.letters = [];
-          this.spawnRate = 2000; // 初期スポーン間隔（ミリ秒）
-          this.fallSpeed = 3; // 初期落下速度
+          // レベル1（以前のレベル5相当の速さ）の初期設定
+          this.spawnRate = 1000; // この値が新しいレベル1の文字の出現間隔（ミリ秒）
+          this.fallSpeed = 1.0; // この値が新しいレベル1の速さの基準値（「1」として扱われます）
           this.lastSpawn = 0;
 
           // trae.htmlの文字色とポイントのロジックを維持
@@ -273,13 +274,13 @@
         }
 
         init() {
-          this.startButton.addEventListener("click", () => this.startGame()); // スタートボタンのイベントリスナー
-          this.restartButton.addEventListener("click", () => this.restart()); // リスタートボタンのイベントリスナー
+          this.startButton.addEventListener("click", () => this.startGame());
+          this.restartButton.addEventListener("click", () => this.restart());
           document.addEventListener("keydown", (e) => this.handleKeyPress(e));
           this.updateUI(); // UIを初期化
         }
 
-        // 背景の星を作成 (geminitypeから流用)
+        // 背景の星を作成
         createStars() {
           for (let i = 0; i < 100; i++) {
             const star = document.createElement("div");
@@ -301,9 +302,9 @@
 
         restart() {
           this.score = 0;
-          this.level = 1;
-          this.spawnRate = 2000;
-          this.fallSpeed = 3;
+          this.level = 1; // 表示上の初期レベルは1
+          this.spawnRate = 1000; // 初期スポーン間隔に戻す
+          this.fallSpeed = 1.0; // 初期落下速度に戻す
           this.letters.forEach((letter) => letter.element.remove()); // 残っている文字を削除
           this.letters = [];
           this.updateUI();
@@ -312,9 +313,9 @@
 
         resetStats() {
           this.score = 0;
-          this.level = 1;
-          this.spawnRate = 2000;
-          this.fallSpeed = 3;
+          this.level = 1; // 表示上の初期レベルは1
+          this.spawnRate = 1000; // 初期スポーン間隔に戻す
+          this.fallSpeed = 1.0; // 初期落下速度に戻す
           this.letters.forEach((letter) => letter.element.remove()); // 残っている文字を削除
           this.letters = [];
           this.updateUI();
@@ -363,7 +364,7 @@
 
           // データ保存
           letterEl.dataset.char = char;
-          letterEl.dataset.speed = colorData.speed * this.fallSpeed;
+          letterEl.dataset.speedMultiplier = colorData.speed; // colorDataのspeedを乗数として保存
           letterEl.dataset.points = colorData.points;
 
           this.gameArea.appendChild(letterEl);
@@ -372,14 +373,16 @@
             char: char,
             x: x,
             y: -150,
-            speed: parseFloat(letterEl.dataset.speed),
+            // ここでfallSpeedとcolorData.speedMultiplierを掛け合わせて、実際の落下速度を決定
+            speed:
+              parseFloat(letterEl.dataset.speedMultiplier) * this.fallSpeed,
           });
         }
 
         updateLetters() {
           for (let i = this.letters.length - 1; i >= 0; i--) {
             const letter = this.letters[i];
-            letter.y += letter.speed; // datasetから直接speedを取得
+            letter.y += letter.speed;
             letter.element.style.top = letter.y + "px";
 
             // 画面下に到達したらゲームオーバー
@@ -399,9 +402,8 @@
           for (let i = 0; i < this.letters.length; i++) {
             const letter = this.letters[i];
             if (letter.char === key) {
-              // charプロパティを使用
               // スコア加算
-              this.score += parseInt(letter.element.dataset.points); // datasetからポイントを取得
+              this.score += parseInt(letter.element.dataset.points);
 
               // ヒットエフェクト (geminitypeから流用)
               letter.element.classList.add("hit");
@@ -412,7 +414,7 @@
                 if (letter.element.parentNode) {
                   letter.element.parentNode.removeChild(letter.element);
                 }
-              }, 300); // geminitypeのアニメーション時間に合わせて調整
+              }, 300); // アニメーション時間に合わせて調整
 
               this.letters.splice(i, 1);
               this.updateUI();
@@ -421,7 +423,7 @@
           }
         }
 
-        // パーティクルエフェクトの作成 (geminitypeから流用)
+        // パーティクルエフェクトの作成
         createParticles(x, y) {
           for (let i = 0; i < 8; i++) {
             const particle = document.createElement("div");
@@ -462,16 +464,29 @@
         }
 
         checkLevelUp() {
+          // スコア100点ごとにレベルアップ
           const newLevel = Math.floor(this.score / 100) + 1;
+
           if (newLevel > this.level) {
             this.level = newLevel;
-            this.spawnRate = Math.max(500, 2000 - (this.level - 1) * 200);
-            this.fallSpeed = 1 + (this.level - 1) * 0.3;
-            // 既存の文字の速度も更新
+
+            // 「レベル1の速さ」を基準（1.0）とし、レベルが上がるごとに1.0ずつ速さを増やす
+            // 例: レベル1で fallSpeed=1.0, レベル2で fallSpeed=2.0, レベル3で fallSpeed=3.0...
+            this.fallSpeed = 1.0 + (this.level - 1) * 1.0;
+
+            // スポーン間隔も速さに合わせて短くする（文字の出現頻度を上げる）
+            // fallSpeedが1.0の時にspawnRateが1000msだとすると、fallSpeedが2.0の時は500ms
+            this.spawnRate = Math.max(200, 1000 / this.fallSpeed); // 最低スポーン間隔は200ms
+
+            // 既存の文字の速度も新しいfallSpeedに合わせて更新
             this.letters.forEach((letter) => {
+              // spawnLetterで保存したdataset.speedMultiplier（文字の種類ごとの相対速度）に
+              // 新しいfallSpeedを掛けて、現在の落下速度を再計算します。
               letter.speed =
-                parseFloat(letter.element.dataset.speed) * this.fallSpeed;
+                parseFloat(letter.element.dataset.speedMultiplier) *
+                this.fallSpeed;
             });
+
             this.updateUI();
           }
         }
