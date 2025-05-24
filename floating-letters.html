@@ -222,7 +222,7 @@
 
     <div id="gameContainer">
       <div id="ui">
-        <div class="score-item">SCORE: <span id="score">0</span></div>
+        <div class="score-item">COUNT: <span id="score">0</span></div>
         <div class="score-item">LEVEL: <span id="level">1</span></div>
       </div>
     </div>
@@ -230,7 +230,7 @@
     <div id="gameOverScreen">
       <h1 id="gameOverTitle">GAME OVER</h1>
       <div id="finalStats">
-        <p>最終スコア: <span id="finalScore">0</span></p>
+        <p>打ち抜いた文字数: <span id="finalScore">0</span></p>
         <p>レベル: <span id="finalLevel">1</span></p>
       </div>
       <button id="restartButton" class="startButton">RESTART</button>
@@ -240,7 +240,7 @@
       class TypingGame {
         constructor() {
           this.gameArea = document.getElementById("gameContainer");
-          this.scoreElement = document.getElementById("score");
+          this.scoreElement = document.getElementById("score"); // COUNT表示用
           this.levelElement = document.getElementById("level");
           this.gameOverScreen = document.getElementById("gameOverScreen");
           this.finalScoreElement = document.getElementById("finalScore");
@@ -249,7 +249,7 @@
           this.startScreen = document.getElementById("startScreen");
           this.startButton = document.getElementById("startButton");
 
-          this.score = 0;
+          this.score = 0; // 打ち抜いた文字数
           this.level = 1; // 表示上の初期レベルは1
           this.gameRunning = false;
           this.letters = [];
@@ -258,13 +258,13 @@
           this.fallSpeed = 1.0; // この値が新しいレベル1の速さの基準値（「1」として扱われます）
           this.lastSpawn = 0;
 
-          // trae.htmlの文字色とポイントのロジックを維持
+          // letterColorsからpointsプロパティを削除（または無視）
           this.letterColors = [
-            { class: "red", speed: 1.5, points: 15 },
-            { class: "blue", speed: 1.2, points: 12 },
-            { class: "green", speed: 1.0, points: 10 },
-            { class: "yellow", speed: 0.8, points: 8 },
-            { class: "purple", speed: 0.6, points: 6 },
+            { class: "red", speed: 1.5 },
+            { class: "blue", speed: 1.2 },
+            { class: "green", speed: 1.0 },
+            { class: "yellow", speed: 0.8 },
+            { class: "purple", speed: 0.6 },
           ];
 
           this.alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -301,7 +301,7 @@
         }
 
         restart() {
-          this.score = 0;
+          this.score = 0; // スコアを0にリセット
           this.level = 1; // 表示上の初期レベルは1
           this.spawnRate = 1000; // 初期スポーン間隔に戻す
           this.fallSpeed = 1.0; // 初期落下速度に戻す
@@ -312,7 +312,7 @@
         }
 
         resetStats() {
-          this.score = 0;
+          this.score = 0; // スコアを0にリセット
           this.level = 1; // 表示上の初期レベルは1
           this.spawnRate = 1000; // 初期スポーン間隔に戻す
           this.fallSpeed = 1.0; // 初期落下速度に戻す
@@ -365,7 +365,7 @@
           // データ保存
           letterEl.dataset.char = char;
           letterEl.dataset.speedMultiplier = colorData.speed; // colorDataのspeedを乗数として保存
-          letterEl.dataset.points = colorData.points;
+          // letterEl.dataset.points は不要になったので削除
 
           this.gameArea.appendChild(letterEl);
           this.letters.push({
@@ -402,10 +402,10 @@
           for (let i = 0; i < this.letters.length; i++) {
             const letter = this.letters[i];
             if (letter.char === key) {
-              // スコア加算
-              this.score += parseInt(letter.element.dataset.points);
+              // 打ち抜いた文字数を加算
+              this.score += 1;
 
-              // ヒットエフェクト (geminitypeから流用)
+              // ヒットエフェクト
               letter.element.classList.add("hit");
               this.createParticles(letter.x + 45, letter.y + 45); // パーティクル発生位置を調整
 
@@ -464,8 +464,8 @@
         }
 
         checkLevelUp() {
-          // スコア100点ごとにレベルアップ
-          const newLevel = Math.floor(this.score / 100) + 1;
+          // 打ち抜いた文字数10文字ごとにレベルアップ
+          const newLevel = Math.floor(this.score / 10) + 1; // 10文字ごとにレベルアップする例
 
           if (newLevel > this.level) {
             this.level = newLevel;
@@ -492,13 +492,13 @@
         }
 
         updateUI() {
-          this.scoreElement.textContent = this.score;
+          this.scoreElement.textContent = this.score; // UIの表示を更新
           this.levelElement.textContent = this.level;
         }
 
         gameOver() {
           this.gameRunning = false;
-          this.finalScoreElement.textContent = this.score;
+          this.finalScoreElement.textContent = this.score; // 最終スコア（打ち抜いた文字数）を表示
           this.finalLevelElement.textContent = this.level; // 最終レベルを表示
           this.gameOverScreen.style.display = "flex"; // ゲームオーバー画面を表示
         }
