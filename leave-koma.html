@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>絶-zetsu-</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: "Arial", sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+      #gameContainer {
+        position: relative;
+        width: 800px;
+        height: 600px;
+        /* Game background changed to white */
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      #gameCanvas {
+        display: block;
+        border-radius: 20px;
+      }
+      #ui {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        /* Count color changed to black for visibility on white background */
+        color: black;
+        font-size: 24px;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5);
+        z-index: 10;
+      }
+      #gameOver {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        display: none;
+        z-index: 20;
+      }
+      #gameOver h2 {
+        margin: 0 0 20px 0;
+        font-size: 32px;
+        color: #ff6b6b;
+      }
+      #gameOver p {
+        margin: 10px 0;
+        font-size: 18px;
+      }
+      #restartBtn,
+      #shareBtn {
+        background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+        border: none;
+        color: white;
+        padding: 12px 24px;
+        font-size: 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: transform 0.2s;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      #shareBtn {
+        background: linear-gradient(45deg, #00c6ff, #0072ff);
+      }
+      #restartBtn:hover,
+      #shareBtn:hover {
+        transform: scale(1.05);
+      }
+      #instructions {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        color: rgba(0, 0, 0, 0.8); /* Changed to black for visibility */
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="gameContainer">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+      <div id="ui">
+        <div>時間: <span id="time">0</span>秒</div>
+      </div>
+      <div id="gameOver">
+        <h2>ゲームオーバー！</h2>
+        <p>生存時間: <span id="finalTime">0</span>秒</p>
+        <button id="restartBtn">もう一度プレイ</button>
+        <button id="shareBtn">結果を共有👊</button>
+      </div>
+      <div id="instructions">コマを避けよう！</div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      // scoreElement and finalScoreElement removed
+      const timeElement = document.getElementById("time");
+      const gameOverElement = document.getElementById("gameOver");
+      const finalTimeElement = document.getElementById("finalTime");
+      const restartBtn = document.getElementById("restartBtn");
+      const shareBtn = document.getElementById("shareBtn");
+
+      const gonnImg = new Image();
+      // Player image link kept as original
+      gonnImg.src = "gonn.png";
+
+      const komaImg = new Image();
+      // Ball image link kept as original
+      komaImg.src = "koma.png";
+
+      let gameState = {
+        player: { x: 400, y: 300, radius: 32, color: "#4ecdc4" },
+        balls: [],
+        // Particles removed
+        score: 0, // Score still tracked internally for game logic if needed, but not displayed
+        time: 0,
+        gameRunning: true,
+        mouseX: 400,
+        mouseY: 300,
+        lastTime: 0,
+      };
+
+      canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        gameState.mouseX = e.clientX - rect.left;
+        gameState.mouseY = e.clientY - rect.top;
+      });
+
+      function createBall() {
+        const side = Math.floor(Math.random() * 4);
+        let x, y, vx, vy;
+        switch (side) {
+          case 0: // Top
+            x = Math.random() * canvas.width;
+            y = -20;
+            vx = (Math.random() - 0.5) * 4;
+            vy = Math.random() * 3 + 2;
+            break;
+          case 1: // Right
+            x = canvas.width + 20;
+            y = Math.random() * canvas.height;
+            vx = -(Math.random() * 3 + 2);
+            vy = (Math.random() - 0.5) * 4;
+            break;
+          case 2: // Bottom
+            x = Math.random() * canvas.width;
+            y = canvas.height + 20;
+            vx = (Math.random() - 0.5) * 4;
+            vy = -(Math.random() * 3 + 2);
+            break;
+          case 3: // Left
+            x = -20;
+            y = Math.random() * canvas.height;
+            vx = Math.random() * 3 + 2;
+            vy = (Math.random() - 0.5) * 4;
+            break;
+        }
+        return {
+          x,
+          y,
+          vx,
+          vy,
+          radius: Math.random() * 15 + 10,
+          color: `hsl(${Math.random() * 60}, 80%, 60%)`,
+          trail: [],
+        };
+      }
+
+      // createParticle function removed as particles are no longer needed
+      // function createParticle(x, y) { ... }
+
+      function checkCollision(obj1, obj2) {
+        const dx = obj1.x - obj2.x;
+        const dy = obj1.y - obj2.y;
+        return Math.sqrt(dx * dx + dy * dy) < obj1.radius + obj2.radius;
+      }
+
+      function update(currentTime) {
+        if (!gameState.gameRunning) return;
+
+        const deltaTime = currentTime - gameState.lastTime;
+        gameState.lastTime = currentTime;
+
+        // Player movement
+        const dx = gameState.mouseX - gameState.player.x;
+        const dy = gameState.mouseY - gameState.player.y;
+        gameState.player.x += dx * 0.1;
+        gameState.player.y += dy * 0.1;
+
+        // Update time
+        gameState.time += deltaTime / 1000;
+        timeElement.textContent = Math.floor(gameState.time);
+
+        // Ball generation
+        if (Math.random() < 0.02 + gameState.time * 0.001) {
+          gameState.balls.push(createBall());
+        }
+
+        // Update balls
+        gameState.balls.forEach((ball, i) => {
+          ball.x += ball.vx;
+          ball.y += ball.vy;
+
+          // Ball trail update
+          ball.trail.push({ x: ball.x, y: ball.y });
+          if (ball.trail.length > 10) {
+            ball.trail.shift();
+          }
+
+          // Remove balls that go off-screen and update score
+          if (
+            ball.x < -50 ||
+            ball.x > canvas.width + 50 ||
+            ball.y < -50 ||
+            ball.y > canvas.height + 50
+          ) {
+            gameState.balls.splice(i, 1);
+            gameState.score += 10; // Score still updated internally
+            // scoreElement.textContent = gameState.score; // Score display removed
+          }
+
+          // Check for collision with player
+          if (checkCollision(gameState.player, ball)) {
+            gameOver();
+          }
+        });
+
+        // Particles update removed
+        // gameState.particles.forEach((p, i) => { ... });
+      }
+
+      function draw() {
+        // Clear canvas with white background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw grid lines
+        ctx.strokeStyle = "#000000"; // Black color for lines
+        ctx.lineWidth = 1; // Line width
+
+        // Draw vertical lines
+        for (let x = 0; x <= canvas.width; x += 50) {
+          // 50px spacing
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
+          ctx.stroke();
+        }
+
+        // Draw horizontal lines
+        for (let y = 0; y <= canvas.height; y += 50) {
+          // 50px spacing
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
+
+        // Particles drawing removed
+        // gameState.particles.forEach((p) => { ... });
+
+        // Draw balls and their trails
+        gameState.balls.forEach((ball) => {
+          ball.trail.forEach((pt, i) => {
+            ctx.save();
+            ctx.globalAlpha = (i / ball.trail.length) * 0.3;
+            ctx.fillStyle = ball.color;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, ball.radius * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          });
+          // Draw koma image for balls
+          ctx.drawImage(komaImg, ball.x - 16, ball.y - 16, 32, 32);
+        });
+
+        // Draw player (gonn image)
+        ctx.drawImage(
+          gonnImg,
+          gameState.player.x - 32,
+          gameState.player.y - 32,
+          64,
+          64
+        );
+
+        // Player particle emission removed
+        // if (Math.random() < 0.3) { ... }
+      }
+
+      function gameOver() {
+        gameState.gameRunning = false;
+        // finalScoreElement.textContent = gameState.score; // Final score display removed
+        finalTimeElement.textContent = Math.floor(gameState.time);
+        gameOverElement.style.display = "block";
+        // Particles on game over removed
+        // for (let i = 0; i < 20; i++) { ... }
+      }
+
+      function restart() {
+        gameState = {
+          player: { x: 400, y: 300, radius: 32, color: "#4ecdc4" },
+          balls: [],
+          // Particles removed from initial state
+          score: 0,
+          time: 0,
+          gameRunning: true,
+          mouseX: 400,
+          mouseY: 300,
+          lastTime: performance.now(),
+        };
+        // scoreElement.textContent = "0"; // Score display removed
+        timeElement.textContent = "0";
+        gameOverElement.style.display = "none";
+      }
+
+      restartBtn.addEventListener("click", restart);
+
+      shareBtn.addEventListener("click", () => {
+        // Removed score from the share message
+        const message = `🌀 結果共有 🌀\n生存時間: ${Math.floor(
+          gameState.time
+        )}秒\n#絶ゲーム`;
+        // Replaced alert with a custom message box for clipboard copy success
+        const showMessage = (msg) => {
+          const messageBox = document.createElement("div");
+          messageBox.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+          `;
+          messageBox.textContent = msg;
+          document.body.appendChild(messageBox);
+
+          // Fade in
+          setTimeout(() => {
+            messageBox.style.opacity = "1";
+          }, 10);
+
+          // Fade out and remove
+          setTimeout(() => {
+            messageBox.style.opacity = "0";
+            messageBox.addEventListener("transitionend", () =>
+              messageBox.remove()
+            );
+          }, 2000);
+        };
+
+        navigator.clipboard
+          .writeText(message)
+          .then(() => {
+            showMessage("結果をクリップボードにコピーしました！");
+          })
+          .catch(() => {
+            showMessage("コピーに失敗しました。");
+          });
+
+        const tweetURL = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+          message
+        )}&url=${encodeURIComponent(location.href)}`;
+        window.open(tweetURL, "_blank");
+      });
+
+      function gameLoop(currentTime) {
+        update(currentTime);
+        draw();
+        requestAnimationFrame(gameLoop);
+      }
+
+      // Initialize lastTime and start the game loop
+      gameState.lastTime = performance.now();
+      gameLoop(performance.now());
+    </script>
+  </body>
+</html>

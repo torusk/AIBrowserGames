@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LOVE PHANTOM</title>
+    <style>
+      body {
+        margin: 0;
+        background-color: #000000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden; /* スクロールバーを非表示 */
+      }
+      canvas {
+        background-color: #1a1a1a;
+        display: block;
+        box-shadow: 0 0 25px #e91e63; /* 輝くエフェクト */
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // キャンバスのサイズを画面に合わせて調整
+      canvas.width = window.innerWidth > 800 ? 800 : window.innerWidth;
+      canvas.height = window.innerHeight > 600 ? 600 : window.innerHeight;
+
+      // --- ゲーム設定 ---
+      const gameSpeedStart = 2;
+      const gravity = 0.2;
+      const jump = 4;
+
+      let gameSpeed;
+      let score;
+      let gameOver;
+      let frame;
+
+      // --- プレイヤー (ファントム) ---
+      const player = {
+        x: 150,
+        y: canvas.height / 2,
+        radius: 15,
+        velocityY: 0,
+        isJumping: false,
+      };
+
+      // --- パーティクル ---
+      let particles = [];
+      class Particle {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.radius = Math.random() * 3 + 1;
+          this.color = "rgba(255, 255, 255, 0.7)";
+          this.velocityX = (Math.random() - 0.5) * 0.5;
+          this.velocityY = (Math.random() - 0.5) * 0.5;
+          this.life = 50;
+        }
+        update() {
+          this.x += this.velocityX - gameSpeed;
+          this.y += this.velocityY;
+          this.life -= 1;
+        }
+        draw() {
+          ctx.globalAlpha = this.life / 50;
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // --- 障害物 ---
+      let obstacles = [];
+      const obstacleWidth = 40;
+      const obstacleGap = 200;
+
+      // --- 愛の光 (スコアアイテム) ---
+      let loves = [];
+      const loveRadius = 10;
+
+      // --- イベントリスナー ---
+      window.addEventListener("mousedown", () => (player.isJumping = true));
+      window.addEventListener("mouseup", () => (player.isJumping = false));
+      window.addEventListener("touchstart", () => (player.isJumping = true), {
+        passive: true,
+      });
+      window.addEventListener("touchend", () => (player.isJumping = false), {
+        passive: true,
+      });
+      canvas.addEventListener("click", () => {
+        if (gameOver) {
+          init();
+        }
+      });
+
+      // --- 初期化処理 ---
+      function init() {
+        player.y = canvas.height / 2;
+        player.velocityY = 0;
+        obstacles = [];
+        loves = [];
+        particles = [];
+        score = 0;
+        gameSpeed = gameSpeedStart;
+        gameOver = false;
+        frame = 0;
+        animate();
+      }
+
+      // --- 描画 & 更新 ---
+      function updatePlayer() {
+        // 操作
+        if (player.isJumping) {
+          player.velocityY = -jump;
+        } else {
+          player.velocityY += gravity;
+        }
+        player.y += player.velocityY;
+
+        // プレイヤーのパーティクル生成
+        if (frame % 3 === 0) {
+          particles.push(new Particle(player.x, player.y));
+        }
+      }
+
+      function drawPlayer() {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+        ctx.fill();
+        // プレイヤーの核
+        ctx.fillStyle = "rgba(255, 255, 255, 1)";
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius / 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function handleParticles() {
+        particles.forEach((p, i) => {
+          p.update();
+          p.draw();
+          if (p.life <= 0) {
+            particles.splice(i, 1);
+          }
+        });
+      }
+
+      function handleObstacles() {
+        if (frame % 100 === 0) {
+          const topHeight = Math.random() * (canvas.height / 2 - 50) + 50;
+          const bottomY = topHeight + obstacleGap;
+
+          obstacles.push({
+            x: canvas.width,
+            y: 0,
+            width: obstacleWidth,
+            height: topHeight,
+            passed: false,
+          });
+          obstacles.push({
+            x: canvas.width,
+            y: bottomY,
+            width: obstacleWidth,
+            height: canvas.height - bottomY,
+          });
+
+          // 愛の光を隙間に生成
+          loves.push({
+            x: canvas.width + obstacleWidth / 2,
+            y: topHeight + obstacleGap / 2,
+          });
+        }
+
+        obstacles.forEach((obs) => {
+          obs.x -= gameSpeed;
+          ctx.fillStyle = "#333";
+          ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        });
+
+        // 画面外の障害物を削除
+        obstacles = obstacles.filter((obs) => obs.x + obs.width > 0);
+      }
+
+      function handleLoves() {
+        loves.forEach((love, i) => {
+          love.x -= gameSpeed;
+
+          // 描画
+          ctx.fillStyle = "#E91E63";
+          ctx.shadowColor = "#E91E63";
+          ctx.shadowBlur = 20;
+          ctx.beginPath();
+          ctx.arc(love.x, love.y, loveRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0; // 影をリセット
+
+          // プレイヤーとの当たり判定
+          const dist = Math.hypot(player.x - love.x, player.y - love.y);
+          if (dist < player.radius + loveRadius) {
+            loves.splice(i, 1);
+            score++;
+            gameSpeed += 0.05; // スコア獲得で少し加速
+          }
+        });
+        loves = loves.filter((love) => love.x + loveRadius > 0);
+      }
+
+      function checkCollision() {
+        // ▼▼▼ 変更箇所 ▼▼▼
+        // 当たり判定を少し甘くするための半径を定義 (見た目の70%のサイズ)
+        const collisionRadius = player.radius * 0.7;
+
+        // 画面上下の当たり判定
+        if (
+          player.y - collisionRadius < 0 ||
+          player.y + collisionRadius > canvas.height
+        ) {
+          gameOver = true;
+          return;
+        }
+        // 障害物との当たり判定
+        for (const obs of obstacles) {
+          if (
+            player.x + collisionRadius > obs.x &&
+            player.x - collisionRadius < obs.x + obs.width &&
+            player.y + collisionRadius > obs.y &&
+            player.y - collisionRadius < obs.y + obs.height
+          ) {
+            gameOver = true;
+            return;
+          }
+        }
+        // ▲▲▲ 変更箇所 ▲▲▲
+      }
+
+      function drawUI() {
+        ctx.fillStyle = "white";
+        ctx.font = "30px sans-serif";
+        ctx.fillText(`Score: ${score}`, 20, 40);
+
+        if (gameOver) {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.fillStyle = "#E91E63";
+          ctx.textAlign = "center";
+          ctx.font = "60px sans-serif";
+          ctx.shadowColor = "#E91E63";
+          ctx.shadowBlur = 10;
+          ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
+
+          ctx.fillStyle = "white";
+          ctx.font = "24px sans-serif";
+          ctx.shadowBlur = 0;
+          ctx.fillText(
+            `Final Score: ${score}`,
+            canvas.width / 2,
+            canvas.height / 2 + 20
+          );
+          ctx.fillText(
+            "Click to Restart",
+            canvas.width / 2,
+            canvas.height / 2 + 70
+          );
+          ctx.textAlign = "start";
+        } else if (frame < 180) {
+          // スタートメッセージ
+          ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.textAlign = "center";
+          ctx.fillStyle = "white";
+          ctx.font = "24px sans-serif";
+          ctx.fillText(
+            "Click and hold to ascend",
+            canvas.width / 2,
+            canvas.height / 2
+          );
+          ctx.textAlign = "start";
+        }
+      }
+
+      // --- メインループ ---
+      function animate() {
+        if (gameOver) {
+          drawUI();
+          return;
+        }
+
+        // 画面クリア
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 更新と描画
+        handleParticles();
+        handleObstacles();
+        handleLoves();
+        updatePlayer();
+        drawPlayer();
+        checkCollision();
+        drawUI();
+
+        frame++;
+        requestAnimationFrame(animate);
+      }
+
+      // --- ゲーム開始 ---
+      init();
+    </script>
+  </body>
+</html>

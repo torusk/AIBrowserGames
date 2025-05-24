@@ -1,0 +1,291 @@
+:root {
+  --primary-bg-color: #0f1020; /* より深い紺色 */
+  --secondary-bg-color: #1a1b32; /* 少し明るい紺色 */
+  --accent-color-1: #00bcd4; /* シアン系 */
+  --accent-color-2: #ff4081; /* 鮮やかなピンク */
+  --text-color-light: #e0e0e0;
+  --text-color-dark: #333;
+  --card-bg-color: #2a2c42; /* カード背景色 */
+  --card-border: #3d405e; /* カードのボーダー */
+  --card-shadow: rgba(0, 0, 0, 0.4);
+  --hover-shadow: rgba(0, 0, 0, 0.8);
+}
+
+body {
+  font-family: "Montserrat", "Noto Sans JP", sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--primary-bg-color);
+  color: var(--text-color-light);
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden; /* 横スクロールバーが出ないように */
+}
+
+header {
+  background-color: var(--secondary-bg-color);
+  padding: 3rem 1rem;
+  text-align: center;
+  box-shadow: 0 4px 15px var(--card-shadow);
+  position: relative;
+  overflow: hidden;
+  /* グラデーション背景とアニメーション */
+  background: linear-gradient(
+    135deg,
+    var(--secondary-bg-color) 0%,
+    #1c1f3d 50%,
+    var(--secondary-bg-color) 100%
+  );
+  background-size: 200% 200%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.header-content {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 3.8rem; /* 少し大きく */
+  font-weight: 700;
+  color: var(--accent-color-1);
+  letter-spacing: 3px; /* 間隔を広げる */
+  text-shadow: 0 0 20px rgba(0, 188, 212, 0.6), 0 0 30px rgba(0, 188, 212, 0.4); /* より強い光彩 */
+  transition: all 0.3s ease-in-out;
+}
+
+header p {
+  font-size: 1.4rem; /* 少し大きく */
+  margin-top: 1rem;
+  color: var(--text-color-light);
+  opacity: 0.9;
+  letter-spacing: 0.5px;
+}
+
+/* ゲームギャラリーのレイアウト */
+.game-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* PCでは2列 */
+  gap: 3rem; /* カード間の余白を増やす */
+  padding: 3.5rem; /* パディングを増やす */
+  max-width: 1280px; /* 最大幅を少し広げる */
+  margin: 3.5rem auto;
+  flex-grow: 1;
+}
+
+.game-card {
+  background-color: var(--card-bg-color);
+  border-radius: 20px; /* 角丸を大きく */
+  border: 2px solid var(--card-border); /* ボーダーを太く */
+  box-shadow: 0 10px 25px var(--card-shadow); /* シャドウを強く */
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+    box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer; /* カーソルをポインターに */
+}
+
+.game-card:hover {
+  transform: translateY(-15px) scale(1.03); /* より大きく浮き上がる */
+  box-shadow: 0 20px 40px var(--hover-shadow); /* ホバー時のシャドウを強く */
+  border-color: var(--accent-color-1); /* ホバー時にボーダー色変更 */
+}
+
+.card-content {
+  padding: 2.5rem; /* パディングを増やす */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex-grow: 1;
+}
+
+.card-icon {
+  font-size: 4.5rem; /* アイコンをさらに大きく */
+  margin-bottom: 1.8rem;
+  color: var(--accent-color-2); /* アイコンの色を変更 */
+  filter: drop-shadow(0 0 12px rgba(255, 64, 129, 0.8)); /* アイコンに光彩 */
+  transition: color 0.3s ease, filter 0.3s ease;
+}
+
+.game-card:hover .card-icon {
+  color: var(--accent-color-1); /* ホバー時にアイコン色変更 */
+  filter: drop-shadow(0 0 15px rgba(0, 188, 212, 0.9));
+}
+
+.game-title {
+  font-size: 2.2rem; /* タイトルを大きく */
+  color: var(--text-color-light);
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.game-description {
+  font-size: 1.15rem; /* 説明文を少し大きく */
+  color: var(--text-color-light);
+  opacity: 0.85;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+}
+
+.game-dev-info {
+  font-size: 0.9rem; /* 開発情報 */
+  color: var(--accent-color-1);
+  margin-top: 1rem;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+footer {
+  background-color: var(--secondary-bg-color);
+  color: var(--text-color-light);
+  text-align: center;
+  padding: 1.8rem; /* パディングを増やす */
+  margin-top: auto;
+  box-shadow: 0 -4px 15px var(--card-shadow);
+  font-size: 0.95rem;
+  letter-spacing: 0.2px;
+}
+
+/* レスポンシブデザインの調整 */
+@media (max-width: 1200px) {
+  .game-gallery {
+    padding: 3rem;
+    gap: 2.5rem;
+  }
+}
+
+@media (max-width: 992px) {
+  header h1 {
+    font-size: 3rem;
+  }
+
+  header p {
+    font-size: 1.2rem;
+  }
+
+  .game-gallery {
+    gap: 2rem;
+    padding: 2.5rem;
+  }
+
+  .game-title {
+    font-size: 2rem;
+  }
+
+  .game-description {
+    font-size: 1.05rem;
+  }
+
+  .card-icon {
+    font-size: 4rem;
+  }
+}
+
+@media (max-width: 768px) {
+  header h1 {
+    font-size: 2.5rem;
+    letter-spacing: 1.5px;
+  }
+
+  header p {
+    font-size: 1rem;
+  }
+
+  .game-gallery {
+    grid-template-columns: 1fr; /* スマホでは1列 */
+    padding: 2rem;
+    max-width: 500px;
+    gap: 2rem;
+  }
+
+  .game-card {
+    border-radius: 15px;
+  }
+
+  .card-content {
+    padding: 2rem;
+  }
+
+  .card-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .game-title {
+    font-size: 1.8rem;
+  }
+
+  .game-description {
+    font-size: 0.95rem;
+  }
+
+  .game-dev-info {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  header {
+    padding: 2rem 0.8rem;
+  }
+
+  header h1 {
+    font-size: 2rem;
+  }
+
+  header p {
+    font-size: 0.9rem;
+  }
+
+  .game-gallery {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .card-content {
+    padding: 1.5rem;
+  }
+
+  .card-icon {
+    font-size: 3rem;
+  }
+
+  .game-title {
+    font-size: 1.5rem;
+  }
+
+  .game-description {
+    font-size: 0.85rem;
+  }
+
+  .game-dev-info {
+    font-size: 0.8rem;
+  }
+}

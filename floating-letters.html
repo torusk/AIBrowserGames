@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Floating Letters</title>
+    <style>
+      /* 全体のリセット */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* bodyのスタイル */
+      body {
+        font-family: "Courier New", monospace;
+        background: radial-gradient(
+          ellipse at center,
+          #1a1a2e 0%,
+          #16213e 50%,
+          #0f0f23 100%
+        );
+        color: #fff;
+        overflow: hidden; /* スクロールバーを非表示 */
+      }
+
+      /* ゲームコンテナのスタイル */
+      #gameContainer {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* 落下する文字のスタイル */
+      .letter {
+        position: absolute;
+        font-size: 9rem; /* 文字の大きさをさらに1.5倍に (6rem -> 9rem) */
+        font-weight: bold;
+        color: #64ffda; /* 文字の色 */
+        text-shadow: 0 0 20px #64ffda, 0 0 40px #64ffda, 0 0 60px #64ffda; /* 文字の影 */
+        transition: all 0.1s ease; /* アニメーションを高速化 */
+        user-select: none; /* テキスト選択を無効化 */
+        pointer-events: none; /* マウスイベントを無効化 */
+        z-index: 10;
+      }
+
+      /* ヒットした文字のスタイル */
+      .letter.hit {
+        transform: scale(1.5); /* 拡大 */
+        opacity: 0; /* 透明にする */
+        color: #ff6b6b; /* ヒット時の色 */
+        text-shadow: 0 0 30px #ff6b6b, 0 0 60px #ff6b6b; /* ヒット時の影 */
+      }
+
+      /* UI要素のコンテナ */
+      #ui {
+        position: fixed;
+        top: 30px;
+        left: 30px;
+        z-index: 100;
+        display: flex;
+        gap: 40px;
+        font-size: 1.2rem;
+      }
+
+      /* 各スコアアイテムのスタイル */
+      .score-item {
+        color: #64ffda;
+        text-shadow: 0 0 10px #64ffda;
+      }
+
+      /* ゲームオーバー画面のスタイル */
+      #gameOverScreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95); /* 半透明の黒背景 */
+        display: none; /* 初期状態では非表示 */
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(10px); /* 背景をぼかす */
+      }
+
+      /* ゲームオーバータイトルのスタイル */
+      #gameOverTitle {
+        font-size: 3rem;
+        margin-bottom: 2rem;
+        color: #ff6b6b;
+        text-shadow: 0 0 20px #ff6b6b;
+      }
+
+      /* 最終統計のスタイル */
+      #finalStats {
+        font-size: 1.4rem;
+        margin-bottom: 3rem;
+        text-align: center;
+        color: #ccc;
+        line-height: 1.8;
+      }
+
+      /* スタート画面のスタイル */
+      #startScreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9); /* 半透明の黒背景 */
+        display: flex; /* 初期状態では表示 */
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(10px); /* 背景をぼかす */
+      }
+
+      /* タイトルのスタイル */
+      #title {
+        font-size: 4rem;
+        margin-bottom: 2rem;
+        color: #64ffda;
+        text-shadow: 0 0 20px #64ffda;
+        animation: pulse 2s infinite; /* 点滅アニメーション */
+      }
+
+      /* 説明文のスタイル */
+      #instruction {
+        font-size: 1.2rem;
+        margin-bottom: 3rem;
+        text-align: center;
+        color: #ccc;
+        line-height: 1.6;
+      }
+
+      /* スタートボタンのスタイル */
+      #startButton {
+        background: linear-gradient(
+          45deg,
+          #64ffda,
+          #4fc3f7
+        ); /* グラデーション背景 */
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.4rem;
+        font-weight: bold;
+        color: #000;
+        border-radius: 50px; /* 角丸 */
+        cursor: pointer;
+        transition: all 0.3s ease; /* ホバー時のアニメーション */
+        text-transform: uppercase; /* 大文字 */
+        letter-spacing: 2px; /* 文字間隔 */
+      }
+
+      /* スタートボタンのホバー時のスタイル */
+      #startButton:hover {
+        transform: translateY(-3px); /* 少し上に移動 */
+        box-shadow: 0 10px 30px rgba(100, 255, 218, 0.3); /* 影 */
+      }
+
+      /* タイトルの点滅アニメーション */
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+
+      /* 星のスタイル */
+      .star {
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        background: #fff;
+        border-radius: 50%;
+        opacity: 0.8;
+        animation: twinkle 3s infinite; /* 点滅アニメーション */
+      }
+
+      /* 星の点滅アニメーション */
+      @keyframes twinkle {
+        0%,
+        100% {
+          opacity: 0.8;
+        }
+        50% {
+          opacity: 0.3;
+        }
+        75% {
+          opacity: 0.5;
+        }
+      }
+
+      /* パーティクルのスタイル */
+      .particle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: #ff6b6b;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 5;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="startScreen">
+      <h1 id="title">FLOATING LETTERS</h1>
+      <div id="instruction">
+        キーボードでアルファベットを打って<br />
+        浮遊する文字を撃ち落とそう
+      </div>
+      <button id="startButton">START</button>
+    </div>
+
+    <div id="gameContainer">
+      <div id="ui">
+        <div class="score-item">SCORE: <span id="score">0</span></div>
+        <div class="score-item">LEVEL: <span id="level">1</span></div>
+      </div>
+    </div>
+
+    <div id="gameOverScreen">
+      <h1 id="gameOverTitle">GAME OVER</h1>
+      <div id="finalStats">
+        <p>最終スコア: <span id="finalScore">0</span></p>
+        <p>レベル: <span id="finalLevel">1</span></p>
+      </div>
+      <button id="restartButton" class="startButton">RESTART</button>
+    </div>
+
+    <script>
+      class TypingGame {
+        constructor() {
+          this.gameArea = document.getElementById("gameContainer"); // ゲームエリアはgameContainerを使用
+          this.scoreElement = document.getElementById("score");
+          this.levelElement = document.getElementById("level");
+          this.gameOverScreen = document.getElementById("gameOverScreen"); // geminitypeの要素を使用
+          this.finalScoreElement = document.getElementById("finalScore");
+          this.finalLevelElement = document.getElementById("finalLevel"); // 追加
+          this.restartButton = document.getElementById("restartButton"); // geminitypeの要素を使用
+          this.startScreen = document.getElementById("startScreen"); // geminitypeの要素を使用
+          this.startButton = document.getElementById("startButton"); // geminitypeの要素を使用
+
+          this.score = 0;
+          this.level = 1;
+          this.gameRunning = false;
+          this.letters = [];
+          this.spawnRate = 2000; // 初期スポーン間隔（ミリ秒）
+          this.fallSpeed = 3; // 初期落下速度
+          this.lastSpawn = 0;
+
+          // trae.htmlの文字色とポイントのロジックを維持
+          this.letterColors = [
+            { class: "red", speed: 1.5, points: 15 },
+            { class: "blue", speed: 1.2, points: 12 },
+            { class: "green", speed: 1.0, points: 10 },
+            { class: "yellow", speed: 0.8, points: 8 },
+            { class: "purple", speed: 0.6, points: 6 },
+          ];
+
+          this.alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+          this.init();
+          this.createStars(); // 背景の星を作成
+        }
+
+        init() {
+          this.startButton.addEventListener("click", () => this.startGame()); // スタートボタンのイベントリスナー
+          this.restartButton.addEventListener("click", () => this.restart()); // リスタートボタンのイベントリスナー
+          document.addEventListener("keydown", (e) => this.handleKeyPress(e));
+          this.updateUI(); // UIを初期化
+        }
+
+        // 背景の星を作成 (geminitypeから流用)
+        createStars() {
+          for (let i = 0; i < 100; i++) {
+            const star = document.createElement("div");
+            star.className = "star";
+            star.style.left = Math.random() * 100 + "%";
+            star.style.top = Math.random() * 100 + "%";
+            star.style.animationDelay = Math.random() * 3 + "s";
+            document.body.appendChild(star);
+          }
+        }
+
+        startGame() {
+          this.startScreen.style.display = "none"; // スタート画面を非表示
+          this.gameOverScreen.style.display = "none"; // ゲームオーバー画面を非表示
+          this.gameRunning = true;
+          this.resetStats(); // 統計情報をリセット
+          this.gameLoop();
+        }
+
+        restart() {
+          this.score = 0;
+          this.level = 1;
+          this.spawnRate = 2000;
+          this.fallSpeed = 3;
+          this.letters.forEach((letter) => letter.element.remove()); // 残っている文字を削除
+          this.letters = [];
+          this.updateUI();
+          this.startGame(); // ゲームを再開
+        }
+
+        resetStats() {
+          this.score = 0;
+          this.level = 1;
+          this.spawnRate = 2000;
+          this.fallSpeed = 3;
+          this.letters.forEach((letter) => letter.element.remove()); // 残っている文字を削除
+          this.letters = [];
+          this.updateUI();
+        }
+
+        gameLoop() {
+          if (!this.gameRunning) return;
+
+          const currentTime = Date.now();
+
+          // 新しい文字をスポーン
+          if (currentTime - this.lastSpawn > this.spawnRate) {
+            this.spawnLetter();
+            this.lastSpawn = currentTime;
+          }
+
+          // 文字を移動
+          this.updateLetters();
+
+          // レベルアップチェック
+          this.checkLevelUp();
+
+          requestAnimationFrame(() => this.gameLoop());
+        }
+
+        spawnLetter() {
+          const letterEl = document.createElement("div");
+          letterEl.className = "letter";
+
+          // ランダムな文字
+          const char =
+            this.alphabet[Math.floor(Math.random() * this.alphabet.length)];
+          letterEl.textContent = char;
+
+          // ランダムな色とプロパティ
+          const colorData =
+            this.letterColors[
+              Math.floor(Math.random() * this.letterColors.length)
+            ];
+          letterEl.classList.add(colorData.class);
+
+          // 位置設定
+          const x = Math.random() * (window.innerWidth - 150); // 文字のサイズに合わせて調整
+          letterEl.style.left = x + "px";
+          letterEl.style.top = "-150px"; // 画面外から出現
+
+          // データ保存
+          letterEl.dataset.char = char;
+          letterEl.dataset.speed = colorData.speed * this.fallSpeed;
+          letterEl.dataset.points = colorData.points;
+
+          this.gameArea.appendChild(letterEl);
+          this.letters.push({
+            element: letterEl,
+            char: char,
+            x: x,
+            y: -150,
+            speed: parseFloat(letterEl.dataset.speed),
+          });
+        }
+
+        updateLetters() {
+          for (let i = this.letters.length - 1; i >= 0; i--) {
+            const letter = this.letters[i];
+            letter.y += letter.speed; // datasetから直接speedを取得
+            letter.element.style.top = letter.y + "px";
+
+            // 画面下に到達したらゲームオーバー
+            if (letter.y > window.innerHeight) {
+              this.gameOver();
+              return;
+            }
+          }
+        }
+
+        handleKeyPress(e) {
+          if (!this.gameRunning) return;
+
+          const key = e.key.toUpperCase();
+
+          // 該当する文字を探して削除
+          for (let i = 0; i < this.letters.length; i++) {
+            const letter = this.letters[i];
+            if (letter.char === key) {
+              // charプロパティを使用
+              // スコア加算
+              this.score += parseInt(letter.element.dataset.points); // datasetからポイントを取得
+
+              // ヒットエフェクト (geminitypeから流用)
+              letter.element.classList.add("hit");
+              this.createParticles(letter.x + 45, letter.y + 45); // パーティクル発生位置を調整
+
+              // アニメーション後に文字を削除
+              setTimeout(() => {
+                if (letter.element.parentNode) {
+                  letter.element.parentNode.removeChild(letter.element);
+                }
+              }, 300); // geminitypeのアニメーション時間に合わせて調整
+
+              this.letters.splice(i, 1);
+              this.updateUI();
+              break;
+            }
+          }
+        }
+
+        // パーティクルエフェクトの作成 (geminitypeから流用)
+        createParticles(x, y) {
+          for (let i = 0; i < 8; i++) {
+            const particle = document.createElement("div");
+            particle.className = "particle";
+            particle.style.left = x + "px";
+            particle.style.top = y + "px";
+
+            const angle = (Math.PI * 2 * i) / 8; // 角度を計算
+            const speed = 50 + Math.random() * 50; // 速度をランダムに設定
+            const vx = Math.cos(angle) * speed; // X方向の速度
+            const vy = Math.sin(angle) * speed; // Y方向の速度
+
+            document.body.appendChild(particle);
+
+            let particleX = x;
+            let particleY = y;
+            let opacity = 1;
+
+            // パーティクルのアニメーション
+            const animateParticle = () => {
+              particleX += vx * 0.02;
+              particleY += vy * 0.02;
+              opacity -= 0.02;
+
+              particle.style.left = particleX + "px";
+              particle.style.top = particleY + "px";
+              particle.style.opacity = opacity;
+
+              if (opacity > 0) {
+                requestAnimationFrame(animateParticle); // アニメーションを継続
+              } else {
+                particle.remove(); // 透明になったら削除
+              }
+            };
+
+            requestAnimationFrame(animateParticle);
+          }
+        }
+
+        checkLevelUp() {
+          const newLevel = Math.floor(this.score / 100) + 1;
+          if (newLevel > this.level) {
+            this.level = newLevel;
+            this.spawnRate = Math.max(500, 2000 - (this.level - 1) * 200);
+            this.fallSpeed = 1 + (this.level - 1) * 0.3;
+            // 既存の文字の速度も更新
+            this.letters.forEach((letter) => {
+              letter.speed =
+                parseFloat(letter.element.dataset.speed) * this.fallSpeed;
+            });
+            this.updateUI();
+          }
+        }
+
+        updateUI() {
+          this.scoreElement.textContent = this.score;
+          this.levelElement.textContent = this.level;
+        }
+
+        gameOver() {
+          this.gameRunning = false;
+          this.finalScoreElement.textContent = this.score;
+          this.finalLevelElement.textContent = this.level; // 最終レベルを表示
+          this.gameOverScreen.style.display = "flex"; // ゲームオーバー画面を表示
+        }
+      }
+
+      // ゲーム開始
+      window.addEventListener("load", () => {
+        new TypingGame();
+      });
+    </script>
+  </body>
+</html>
